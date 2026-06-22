@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 39,
+  "title": "Payments",
+  "uid": "osship-payments",
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(rate(ledger_writes_total[5m]))" }],
+      "title": "Ledger Writes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(stripe_webhook_errors_total[5m]))" }],
+      "title": "Webhook Errors",
+      "type": "timeseries"
+    }
+  ],
+  "version": 1
+}

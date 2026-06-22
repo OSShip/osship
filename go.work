@@ -1,0 +1,14 @@
+go 1.22
+
+use (
+	./packages/jwtutil
+	./packages/kafka
+	./packages/observability
+	./services/auth
+	./services/gateway
+	./services/listings
+	./services/mentors
+	./services/notifications
+	./services/sessions
+	./services/users
+)

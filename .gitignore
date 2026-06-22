@@ -1,0 +1,16 @@
+.env
+*.log
+node_modules/
+.next/
+dist/
+target/
+bin/
+*.exe
+.DS_Store
+.idea/
+.vscode/
+coverage/
+tmp/
+postgres_data/
+prometheus_data/
+grafana_data/

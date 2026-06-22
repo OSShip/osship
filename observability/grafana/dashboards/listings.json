@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 39,
+  "title": "Listings",
+  "uid": "osship-listings",
+  "panels": [{
+    "datasource": { "type": "prometheus", "uid": "prometheus" },
+    "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+    "targets": [{ "expr": "sum(rate(http_requests_total{service=\"listings\"}[5m]))" }],
+    "title": "Listings RPS",
+    "type": "timeseries"
+  }],
+  "version": 1
+}
