@@ -37,7 +37,7 @@ services:
     ports:
       - "8080:8080"
 
-  web:
+  ui:
     ports:
       - "3000:3000"
 
