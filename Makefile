@@ -1,5 +1,7 @@
 .PHONY: up down migrate seed build test logs health
 
+SERVICES ?= 
+
 up:
 	docker compose up -d
 
@@ -13,7 +15,7 @@ seed:
 	./scripts/seed.sh
 
 build:
-	docker compose build
+	docker buildx bake $(SERVICES)
 test:
 	go test ./packages/observability/...
 	go test -tags=integration ./tests/integration/...
