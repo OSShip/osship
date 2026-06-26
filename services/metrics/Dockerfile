@@ -1,13 +1,18 @@
-FROM rust:alpine AS builder
-RUN apk add --no-cache musl-dev openssl-dev pkgconfig cmake make g++ curl-dev zlib-dev
+FROM rust:bookworm AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake g++ pkg-config libssl-dev zlib1g-dev libcurl4-openssl-dev libsasl2-dev \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY services/metrics/Cargo.toml services/metrics/Cargo.lock* ./
-RUN mkdir src && echo "fn main(){}" > src/main.rs && cargo build --release 2>/dev/null || true
+COPY services/metrics/Cargo.toml services/metrics/Cargo.lock ./
+RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo build --release
 COPY services/metrics/src ./src
-RUN cargo build --release
+RUN cargo clean --package metrics --release && cargo build --release
+RUN test "$(stat -c%s target/release/metrics)" -gt 1000000
 
-FROM alpine:3.20
-RUN apk add --no-cache ca-certificates libgcc libstdc++
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 zlib1g libcurl4 libsasl2-2 wget \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/metrics /metrics
 EXPOSE 8088
 CMD ["/metrics"]

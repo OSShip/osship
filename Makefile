@@ -1,12 +1,19 @@
-.PHONY: up down migrate seed build test logs health
+.PHONY: up down dev dev-down migrate seed build test logs health
 
-SERVICES ?= 
+SERVICES ?=
+COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
 up:
 	docker compose up -d
 
 down:
 	docker compose down
+
+dev:
+	$(COMPOSE_DEV) up -d
+
+dev-down:
+	$(COMPOSE_DEV) down
 
 migrate:
 	./scripts/migrate.sh
