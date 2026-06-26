@@ -12,15 +12,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <header className="header">
-          <Link href="/" className="logo">OSShip</Link>
+          <Link href="/" className="logo">osship</Link>
           <nav>
-            <Link href="/">Listings</Link>
-            <Link href="/login">Login</Link>
-            <Link href="/register">Register</Link>
-            <Link href="/dashboard/student">Student</Link>
-            <Link href="/dashboard/mentor">Mentor</Link>
-            <Link href="/dashboard/admin/applications">Admin</Link>
-            <Link href="/dashboard/admin/ledger">Ledger</Link>
+            <Link href="/#listings">listings</Link>
+            <Link href="/login">login</Link>
+            <Link href="/register">register</Link>
+            <Link href="/dashboard/student">student</Link>
+            <Link href="/dashboard/mentor">mentor</Link>
+            <Link href="/dashboard/admin/applications">admin</Link>
+            <Link href="/dashboard/admin/ledger">ledger</Link>
           </nav>
         </header>
         <main className="container">{children}</main>
