@@ -1,0 +1,26 @@
+type: environment.insomnia.rest/5.0
+schema_version: "5.1"
+name: development
+meta:
+  id: wrk_9197d7b7fe594f59ae839353a52479c3
+  created: 1782484086742
+  modified: 1782484086742
+  description: ""
+environments:
+  name: Base Environment
+  meta:
+    id: env_5cc17809643da67403d60db75d9ea4d0062804bb
+    created: 1782484086746
+    modified: 1782489039842
+    isPrivate: false
+  subEnvironments:
+    - name: Development
+      meta:
+        id: env_531fa5b7b301407982f721a92a171b99
+        created: 1782489034128
+        modified: 1782489068942
+        isPrivate: false
+        sortKey: 1782489034128
+      data:
+        baseURL: http://localhost
+      color: "#dd92d7"

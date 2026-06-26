@@ -1,0 +1,40 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Gateway
+meta:
+  id: wrk_3604ab0cb87d4c38ba4b2943147e2799
+  created: 1782484143200
+  modified: 1782484143200
+  description: ""
+collection:
+  - url: "{{ _.baseURL }}/api/v1/health"
+    name: Gateway health
+    meta:
+      id: req_2ff010face0e46faa8cf554ced986028
+      created: 1782484146733
+      modified: 1782489091538
+      isPrivate: false
+      description: ""
+      sortKey: -1782484146733
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_630d438550bd6da9fe9d358adab761428e450790
+    created: 1782484143238
+    modified: 1782484143238
+environments:
+  name: Base Environment
+  meta:
+    id: env_630d438550bd6da9fe9d358adab761428e450790
+    created: 1782484143237
+    modified: 1782484143237
+    isPrivate: false
