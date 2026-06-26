@@ -20,6 +20,7 @@ func GenerateToken(secret, userID, role, githubUsername string, expiryHours int)
 		Role:           role,
 		GithubUsername: githubUsername,
 		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiryHours) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},

@@ -4,6 +4,7 @@ use (
 	./packages/jwtutil
 	./packages/kafka
 	./packages/observability
+	./packages/passhash
 	./services/auth
 	./services/gateway
 	./services/listings

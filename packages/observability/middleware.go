@@ -45,6 +45,22 @@ var (
 		},
 		[]string{"service", "route"},
 	)
+
+	CacheHits = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "gateway_cache_hits_total",
+			Help: "Gateway Redis cache hits",
+		},
+		[]string{"cache_key"},
+	)
+
+	CacheMisses = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "gateway_cache_misses_total",
+			Help: "Gateway Redis cache misses",
+		},
+		[]string{"cache_key"},
+	)
 )
 
 func MetricsHandler() http.Handler {

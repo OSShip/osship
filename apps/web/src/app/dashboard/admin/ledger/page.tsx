@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { api, formatPrice } from '@/lib/api';
+import { useState } from 'react';
+import { formatPrice, fetchLedger } from '@/lib/api';
 
 interface LedgerEntry {
   id: string;
@@ -18,8 +18,12 @@ export default function AdminLedgerPage() {
 
   async function loadLedger() {
     if (!listingId) return;
-    const data = await api<LedgerEntry[]>(`/payments/ledger/${listingId}`);
-    setEntries(data);
+    try {
+      const data = await fetchLedger(listingId);
+      setEntries(data);
+    } catch {
+      setEntries([]);
+    }
   }
 
   return (

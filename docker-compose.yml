@@ -9,7 +9,10 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations/init/001_schemas.sql:/docker-entrypoint-initdb.d/01_schemas.sql:ro
       - ./migrations/general/001_init.up.sql:/docker-entrypoint-initdb.d/02_general.sql:ro
+      - ./migrations/general/002_stripe_connect.up.sql:/docker-entrypoint-initdb.d/02b_stripe.sql:ro
+      - ./migrations/general/003_password_salt.up.sql:/docker-entrypoint-initdb.d/02c_password_salt.sql:ro
       - ./migrations/payments/001_init.up.sql:/docker-entrypoint-initdb.d/03_payments.sql:ro
+      - ./migrations/payments/002_outbox.up.sql:/docker-entrypoint-initdb.d/03b_outbox.sql:ro
       - ./migrations/metrics/001_init.up.sql:/docker-entrypoint-initdb.d/04_metrics.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U osship -d osship"]
@@ -88,6 +91,236 @@ services:
     networks:
       - osship-net
 
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    environment:
+      DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_OAUTH_REDIRECT_URI: ${GITHUB_OAUTH_REDIRECT_URI:-http://localhost/api/v1/auth/oauth/github/callback}
+      PORT: "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  users:
+    build:
+      context: .
+      dockerfile: services/users/Dockerfile
+    environment:
+      DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
+      KAFKA_BROKERS: kafka:9092
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      PORT: "8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8083/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  listings:
+    build:
+      context: .
+      dockerfile: services/listings/Dockerfile
+    environment:
+      DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
+      KAFKA_BROKERS: kafka:9092
+      PORT: "8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  mentors:
+    build:
+      context: .
+      dockerfile: services/mentors/Dockerfile
+    environment:
+      DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
+      KAFKA_BROKERS: kafka:9092
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      PORT: "8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8085/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  sessions:
+    build:
+      context: .
+      dockerfile: services/sessions/Dockerfile
+    environment:
+      DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
+      KAFKA_BROKERS: kafka:9092
+      JITSI_BASE_URL: ${JITSI_BASE_URL:-https://meet.jit.si}
+      PORT: "8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8084/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  payments:
+    build:
+      context: .
+      dockerfile: services/payments/Dockerfile
+    environment:
+      DATABASE_URL_PAYMENTS: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable
+      DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_...}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_...}
+      PLATFORM_FEE_PERCENT: ${PLATFORM_FEE_PERCENT:-10}
+      USERS_SERVICE_URL: http://users:8083
+      KAFKA_BROKERS: kafka:9092
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
+      PORT: "8087"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      users:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8087/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  notifications:
+    build:
+      context: .
+      dockerfile: services/notifications/Dockerfile
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-noreply@osship.local}
+      PORT: "8086"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  metrics:
+    build:
+      context: .
+      dockerfile: services/metrics/Dockerfile
+    environment:
+      DATABASE_URL_METRICS: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable
+      KAFKA_BROKERS: kafka:9092
+      PORT: "8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8088/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    environment:
+      PORT: "8080"
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      AUTH_SERVICE_URL: http://auth:8081
+      LISTINGS_SERVICE_URL: http://listings:8082
+      USERS_SERVICE_URL: http://users:8083
+      SESSIONS_SERVICE_URL: http://sessions:8084
+      MENTORS_SERVICE_URL: http://mentors:8085
+      PAYMENTS_SERVICE_URL: http://payments:8087
+      RATE_LIMIT_AUTH_LOGIN: ${RATE_LIMIT_AUTH_LOGIN:-10}
+      RATE_LIMIT_PAYMENTS_CHECKOUT: ${RATE_LIMIT_PAYMENTS_CHECKOUT:-5}
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      users:
+        condition: service_healthy
+      listings:
+        condition: service_healthy
+      mentors:
+        condition: service_healthy
+      payments:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osship-net
+
+  web:
+    build:
+      context: apps/web
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: /api/v1
+      INTERNAL_API_URL: http://gateway:8080/api/v1
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - osship-net
+
   nginx:
     image: nginx:1.27-alpine
     ports:
@@ -98,7 +331,7 @@ services:
       web:
         condition: service_started
       gateway:
-        condition: service_started
+        condition: service_healthy
       grafana:
         condition: service_healthy
     healthcheck:

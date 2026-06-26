@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,24 +25,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type routeLimit struct {
-	group    string
-	limit    redis_rate.Limit
-	byUser   bool
-}
+var routeLimits = observability.DefaultRouteLimits()
 
-var routeLimits = []struct {
-	method  string
-	pattern string
-	limit   routeLimit
+var protectedRoutes = []struct {
+	method string
+	prefix string
 }{
-	{"POST", "/api/v1/auth/login", routeLimit{"auth_login", redis_rate.PerMinute(10), false}},
-	{"POST", "/api/v1/auth/register", routeLimit{"auth_login", redis_rate.PerMinute(10), false}},
-	{"POST", "/api/v1/auth/refresh", routeLimit{"auth_refresh", redis_rate.PerMinute(30), true}},
-	{"POST", "/api/v1/payments/checkout", routeLimit{"payments_checkout", redis_rate.PerMinute(5), true}},
-	{"POST", "/api/v1/payments/webhooks/stripe", routeLimit{"payments_webhook", redis_rate.PerMinute(100), false}},
-	{"POST", "/api/v1/mentors/apply", routeLimit{"mentors_apply", redis_rate.PerHour(3), true}},
-	{"POST", "/api/v1/sessions/*/join", routeLimit{"sessions_join", redis_rate.PerMinute(20), true}},
+	{http.MethodGet, "/api/v1/auth/me"},
+	{http.MethodPatch, "/api/v1/users/me"},
+	{http.MethodPost, "/api/v1/users/me/"},
 }
 
 func main() {
@@ -54,6 +47,7 @@ func main() {
 	}
 	rdb := redis.NewClient(opt)
 	limiter := redis_rate.NewLimiter(rdb)
+	routeLimits = applyRateLimitOverrides(routeLimits)
 
 	backends := map[string]string{
 		"auth":     env("AUTH_SERVICE_URL", "http://auth:8081"),
@@ -72,7 +66,6 @@ func main() {
 
 	r.Get("/health", observability.HealthHandler("gateway"))
 	r.Get("/metrics", observability.MetricsHandler().ServeHTTP)
-
 	r.Get("/api/v1/health", observability.HealthHandler("gateway"))
 
 	r.Route("/api/v1", func(api chi.Router) {
@@ -88,9 +81,18 @@ func main() {
 func handleProxy(w http.ResponseWriter, r *http.Request, backends map[string]string, rdb *redis.Client, limiter *redis_rate.Limiter, jwtSecret string) {
 	path := r.URL.Path
 
-	if err := applyRateLimit(r.Context(), r, limiter, jwtSecret); err != nil {
-		observability.RateLimitExceeded.WithLabelValues("gateway", rateLimitGroup(r)).Inc()
-		w.Header().Set("Retry-After", "60")
+	if requiresAuth(path, r.Method) {
+		if _, err := resolveClaims(r.Context(), r, rdb, jwtSecret); err != nil {
+			observability.HTTPRequestsTotal.WithLabelValues("gateway", r.Method, path, "401").Inc()
+			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+			return
+		}
+	}
+
+	rl := observability.MatchRateLimit(r, routeLimits)
+	if allowed, retryAfter, err := checkRateLimit(r.Context(), r, limiter, jwtSecret, rdb, rl); err == nil && !allowed {
+		observability.RateLimitExceeded.WithLabelValues("gateway", rl.Group).Inc()
+		w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 		http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
 		return
 	}
@@ -101,34 +103,31 @@ func handleProxy(w http.ResponseWriter, r *http.Request, backends map[string]str
 		return
 	}
 
-	// Cache public listings
-	if r.Method == http.MethodGet && (strings.HasPrefix(path, "/api/v1/listings") || strings.HasPrefix(path, "/api/v1/public")) {
+	if r.Method == http.MethodGet && isCacheableGET(path) {
 		cacheKey := cacheKeyForRequest(r)
+		label := cacheLabel(cacheKey)
 		if cached, err := rdb.Get(r.Context(), cacheKey).Bytes(); err == nil {
+			observability.CacheHits.WithLabelValues(label).Inc()
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("X-Cache", "HIT")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(cached)
 			return
 		}
+		observability.CacheMisses.WithLabelValues(label).Inc()
 		rec := &responseRecorder{ResponseWriter: w, status: 200, body: &bytes.Buffer{}}
-		proxyRequest(rec, r, target, stripPrefix, jwtSecret)
+		proxyRequest(rec, r, target, stripPrefix, jwtSecret, rdb)
 		if rec.status == http.StatusOK && rec.body.Len() > 0 {
-			ttl := 60 * time.Second
-			if strings.Contains(path, "payout-summary") {
-				ttl = 300 * time.Second
-			}
-			_ = rdb.Set(r.Context(), cacheKey, rec.body.Bytes(), ttl).Err()
+			_ = rdb.Set(r.Context(), cacheKey, rec.body.Bytes(), cacheTTL(path)).Err()
 		}
 		return
 	}
 
-	// Invalidate cache on listing writes
 	if r.Method != http.MethodGet && strings.HasPrefix(path, "/api/v1/listings") {
 		defer invalidateListingCache(r.Context(), rdb)
 	}
 
-	proxyRequest(w, r, target, stripPrefix, jwtSecret)
+	proxyRequest(w, r, target, stripPrefix, jwtSecret, rdb)
 }
 
 type responseRecorder struct {
@@ -147,7 +146,7 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 	return r.ResponseWriter.Write(b)
 }
 
-func proxyRequest(w http.ResponseWriter, r *http.Request, targetURL, stripPrefix, jwtSecret string) {
+func proxyRequest(w http.ResponseWriter, r *http.Request, targetURL, stripPrefix, jwtSecret string, rdb *redis.Client) {
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		http.Error(w, "bad gateway", http.StatusBadGateway)
@@ -165,13 +164,11 @@ func proxyRequest(w http.ResponseWriter, r *http.Request, targetURL, stripPrefix
 		}
 		req.Host = target.Host
 
-		if auth := r.Header.Get("Authorization"); auth != "" {
-			if claims, err := jwtutil.ValidateToken(jwtSecret, strings.TrimPrefix(auth, "Bearer ")); err == nil {
-				req.Header.Set("X-User-Id", claims.UserID)
-				req.Header.Set("X-User-Role", claims.Role)
-				if claims.GithubUsername != "" {
-					req.Header.Set("X-Github-Username", claims.GithubUsername)
-				}
+		if claims, err := resolveClaims(req.Context(), r, rdb, jwtSecret); err == nil {
+			req.Header.Set("X-User-Id", claims.UserID)
+			req.Header.Set("X-User-Role", claims.Role)
+			if claims.GithubUsername != "" {
+				req.Header.Set("X-Github-Username", claims.GithubUsername)
 			}
 		}
 		if reqID := middleware.GetReqID(r.Context()); reqID != "" {
@@ -183,6 +180,51 @@ func proxyRequest(w http.ResponseWriter, r *http.Request, targetURL, stripPrefix
 		http.Error(rw, `{"error":"service unavailable"}`, http.StatusBadGateway)
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+type cachedClaims struct {
+	UserID         string `json:"sub"`
+	Role           string `json:"role"`
+	GithubUsername string `json:"github_username,omitempty"`
+}
+
+func resolveClaims(ctx context.Context, r *http.Request, rdb *redis.Client, jwtSecret string) (*jwtutil.Claims, error) {
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		return nil, fmt.Errorf("missing authorization")
+	}
+	tokenStr := strings.TrimPrefix(auth, "Bearer ")
+	if tokenStr == auth {
+		return nil, fmt.Errorf("invalid authorization header")
+	}
+
+	hash := sha256.Sum256([]byte(tokenStr))
+	cacheKey := "auth:session:" + hex.EncodeToString(hash[:16])
+
+	if cached, err := rdb.Get(ctx, cacheKey).Bytes(); err == nil {
+		var cc cachedClaims
+		if json.Unmarshal(cached, &cc) == nil {
+			return &jwtutil.Claims{UserID: cc.UserID, Role: cc.Role, GithubUsername: cc.GithubUsername}, nil
+		}
+	}
+
+	claims, err := jwtutil.ValidateToken(jwtSecret, tokenStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if claims.ExpiresAt != nil {
+		ttl := time.Until(claims.ExpiresAt.Time)
+		if ttl > 0 {
+			payload, _ := json.Marshal(cachedClaims{
+				UserID:         claims.UserID,
+				Role:           claims.Role,
+				GithubUsername: claims.GithubUsername,
+			})
+			_ = rdb.Set(ctx, cacheKey, payload, ttl).Err()
+		}
+	}
+	return claims, nil
 }
 
 func rewritePath(stripped, stripPrefix string) string {
@@ -221,51 +263,31 @@ func resolveBackend(path string, backends map[string]string) (string, string) {
 	return "", ""
 }
 
-func applyRateLimit(ctx context.Context, r *http.Request, limiter *redis_rate.Limiter, jwtSecret string) error {
-	rl := matchRateLimit(r)
+func checkRateLimit(ctx context.Context, r *http.Request, limiter *redis_rate.Limiter, jwtSecret string, rdb *redis.Client, rl observability.RouteLimit) (bool, int, error) {
 	identifier := clientIP(r)
-	if rl.byUser {
-		if auth := r.Header.Get("Authorization"); auth != "" {
-			if claims, err := jwtutil.ValidateToken(jwtSecret, strings.TrimPrefix(auth, "Bearer ")); err == nil {
-				identifier = claims.UserID
-			}
+	if rl.ByUser {
+		if claims, err := resolveClaims(ctx, r, rdb, jwtSecret); err == nil {
+			identifier = claims.UserID
 		}
 	}
-	key := fmt.Sprintf("rl:%s:%s", rl.group, identifier)
-	res, err := limiter.Allow(ctx, key, rl.limit)
-	if err != nil {
-		return nil // fail open on redis errors
-	}
-	if res.Allowed == 0 {
-		return fmt.Errorf("rate limited")
-	}
-	return nil
+	key := observability.RateLimitKey(rl.Group, identifier)
+	return observability.AllowRequest(ctx, limiter, key, rl.Limit)
 }
 
-func matchRateLimit(r *http.Request) routeLimit {
-	defaultLimit := routeLimit{"default", redis_rate.PerMinute(300), false}
-	path := r.URL.Path
-	for _, rl := range routeLimits {
-		if r.Method != rl.method {
+func requiresAuth(path, method string) bool {
+	for _, pr := range protectedRoutes {
+		if method != pr.method {
 			continue
 		}
-		if strings.Contains(rl.pattern, "*") {
-			prefix := strings.Split(rl.pattern, "*")[0]
-			if strings.HasPrefix(path, prefix) {
-				return rl.limit
+		if strings.HasSuffix(pr.prefix, "/") {
+			if strings.HasPrefix(path, pr.prefix) {
+				return true
 			}
-		} else if path == rl.pattern {
-			return rl.limit
+		} else if path == pr.prefix || strings.HasPrefix(path, pr.prefix+"/") {
+			return true
 		}
 	}
-	if r.Method == http.MethodGet && (strings.HasPrefix(path, "/api/v1/public") || path == "/api/v1/listings") {
-		return routeLimit{"public_read", redis_rate.PerMinute(120), false}
-	}
-	return defaultLimit
-}
-
-func rateLimitGroup(r *http.Request) string {
-	return matchRateLimit(r).group
+	return false
 }
 
 func clientIP(r *http.Request) string {
@@ -276,15 +298,84 @@ func clientIP(r *http.Request) string {
 }
 
 func cacheKeyForRequest(r *http.Request) string {
+	path := r.URL.Path
+	q := r.URL.Query()
+	if path == "/api/v1/listings" && q.Get("status") == "active" && q.Get("oss_project") == "" {
+		return "listings:active"
+	}
+	if path == "/api/v1/public/payout-summary" {
+		return "public:ledger:summary"
+	}
+	if strings.HasPrefix(path, "/api/v1/listings/") && len(strings.Split(strings.TrimPrefix(path, "/api/v1/listings/"), "/")) == 1 {
+		return "listings:id:" + strings.TrimPrefix(path, "/api/v1/listings/")
+	}
+	if path == "/api/v1/public/listings" && q.Get("status") == "active" && q.Get("oss_project") == "" {
+		return "listings:active"
+	}
 	h := sha256.Sum256([]byte(r.URL.String()))
 	return "cache:" + hex.EncodeToString(h[:8])
 }
 
+func cacheLabel(key string) string {
+	if strings.HasPrefix(key, "listings:") || strings.HasPrefix(key, "public:") {
+		return key
+	}
+	return "other"
+}
+
+func isCacheableGET(path string) bool {
+	return strings.HasPrefix(path, "/api/v1/listings") || strings.HasPrefix(path, "/api/v1/public")
+}
+
+func cacheTTL(path string) time.Duration {
+	if strings.Contains(path, "payout-summary") {
+		return 300 * time.Second
+	}
+	return 60 * time.Second
+}
+
 func invalidateListingCache(ctx context.Context, rdb *redis.Client) {
-	iter := rdb.Scan(ctx, 0, "cache:*", 100).Iterator()
+	keys := []string{"listings:active", "public:ledger:summary"}
+	_ = rdb.Del(ctx, keys...).Err()
+	iter := rdb.Scan(ctx, 0, "listings:id:*", 100).Iterator()
 	for iter.Next(ctx) {
 		_ = rdb.Del(ctx, iter.Val()).Err()
 	}
+	iter = rdb.Scan(ctx, 0, "cache:*", 100).Iterator()
+	for iter.Next(ctx) {
+		_ = rdb.Del(ctx, iter.Val()).Err()
+	}
+}
+
+func applyRateLimitOverrides(rules []observability.RouteLimitRule) []observability.RouteLimitRule {
+	out := make([]observability.RouteLimitRule, len(rules))
+	copy(out, rules)
+	if v := envInt("RATE_LIMIT_AUTH_LOGIN", 0); v > 0 {
+		limit := redis_rate.PerMinute(v)
+		for i := range out {
+			if out[i].Limit.Group == "auth_login" {
+				out[i].Limit.Limit = limit
+			}
+		}
+	}
+	if v := envInt("RATE_LIMIT_PAYMENTS_CHECKOUT", 0); v > 0 {
+		limit := redis_rate.PerMinute(v)
+		for i := range out {
+			if out[i].Limit.Group == "payments_checkout" {
+				out[i].Limit.Limit = limit
+			}
+		}
+	}
+	return out
+}
+
+func envInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return fallback
 }
 
 func env(key, fallback string) string {
@@ -294,5 +385,4 @@ func env(key, fallback string) string {
 	return fallback
 }
 
-// suppress unused import
 var _ = io.Discard

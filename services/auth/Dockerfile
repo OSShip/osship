@@ -6,7 +6,7 @@ WORKDIR /app/services/auth
 RUN go mod download && CGO_ENABLED=0 go build -o /auth .
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates wget
 COPY --from=builder /auth /auth
 EXPOSE 8081
 CMD ["/auth"]

@@ -73,7 +73,10 @@ func main() {
 	r.Post("/me/contributions", s.addContribution)
 	r.Get("/{id}/enrollments", s.getEnrollments)
 	r.Post("/enrollments", s.createEnrollment)
-	r.Patch("/enrollments/{id}/activate", s.activateEnrollment)
+	r.Route("/enrollments/{id}/activate", func(r chi.Router) {
+		r.Post("/", s.activateEnrollment)
+		r.Patch("/", s.activateEnrollment)
+	})
 
 	log.Printf("users listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
@@ -117,13 +120,28 @@ func (s *server) updateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err := s.pool.Exec(r.Context(),
-		`UPDATE users SET display_name=$1, bio=$2, github_username=$3, updated_at=NOW() WHERE id=$4`,
+		`UPDATE users SET
+			display_name = CASE WHEN $1 <> '' THEN $1 ELSE display_name END,
+			bio = CASE WHEN $2 <> '' THEN $2 ELSE bio END,
+			github_username = CASE WHEN $3 <> '' THEN $3 ELSE github_username END,
+			updated_at = NOW()
+		WHERE id = $4`,
 		req.DisplayName, req.Bio, req.GithubUsername, userID)
 	if err != nil {
 		http.Error(w, `{"error":"internal"}`, http.StatusInternalServerError)
 		return
 	}
-	s.getProfile(w, r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, &chi.Context{URLParams: chi.RouteParams{Keys: []string{"id"}, Values: []string{userID}}})))
+
+	var p profile
+	err = s.pool.QueryRow(r.Context(),
+		`SELECT id, role, COALESCE(github_username,''), COALESCE(display_name,''), COALESCE(bio,'') FROM users WHERE id=$1`, userID).
+		Scan(&p.ID, &p.Role, &p.GithubUsername, &p.DisplayName, &p.Bio)
+	if err != nil {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		return
+	}
+	_ = s.pool.QueryRow(r.Context(), `SELECT email FROM users WHERE id=$1`, userID).Scan(&p.Email)
+	writeJSON(w, http.StatusOK, p)
 }
 
 func (s *server) addContribution(w http.ResponseWriter, r *http.Request) {
@@ -206,10 +224,33 @@ func (s *server) activateEnrollment(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	_, err := s.pool.Exec(r.Context(),
-		`UPDATE enrollments SET status='active', stripe_checkout_session_id=$1, updated_at=NOW() WHERE id=$2`,
-		req.CheckoutSessionID, id)
+	tx, err := s.pool.Begin(r.Context())
 	if err != nil {
+		http.Error(w, `{"error":"internal"}`, http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	var listingID string
+	err = tx.QueryRow(r.Context(),
+		`UPDATE enrollments SET status='active', stripe_checkout_session_id=$1, updated_at=NOW()
+		 WHERE id=$2 AND status='pending_payment' RETURNING listing_id`,
+		req.CheckoutSessionID, id).Scan(&listingID)
+	if err != nil {
+		http.Error(w, `{"error":"not found or already active"}`, http.StatusNotFound)
+		return
+	}
+
+	_, err = tx.Exec(r.Context(),
+		`UPDATE listings SET filled_slots = filled_slots + 1, updated_at = NOW(),
+		 status = CASE WHEN filled_slots + 1 >= total_slots THEN 'full'::listing_status ELSE status END
+		 WHERE id = $1`, listingID)
+	if err != nil {
+		http.Error(w, `{"error":"internal"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
 		http.Error(w, `{"error":"internal"}`, http.StatusInternalServerError)
 		return
 	}

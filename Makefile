@@ -15,7 +15,11 @@ seed:
 build:
 	docker compose build
 test:
-	./scripts/health-check.sh
+	go test ./packages/observability/...
+	go test -tags=integration ./tests/integration/...
+
+integration:
+	./scripts/integration-test.sh
 
 logs:
 	docker compose logs -f

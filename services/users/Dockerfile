@@ -6,7 +6,7 @@ WORKDIR /app/services/users
 RUN go mod download && CGO_ENABLED=0 go build -o /users .
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates wget
 COPY --from=builder /users /users
 EXPOSE 8083
 CMD ["/users"]

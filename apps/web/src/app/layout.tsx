@@ -20,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/dashboard/student">Student</Link>
             <Link href="/dashboard/mentor">Mentor</Link>
             <Link href="/dashboard/admin/applications">Admin</Link>
+            <Link href="/dashboard/admin/ledger">Ledger</Link>
           </nav>
         </header>
         <main className="container">{children}</main>

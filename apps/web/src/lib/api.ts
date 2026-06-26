@@ -11,6 +11,8 @@ export interface User {
 export interface Listing {
   id: string;
   mentor_id: string;
+  mentor_display_name?: string;
+  mentor_github_username?: string;
   oss_project_name: string;
   oss_repo_url: string;
   description: string;
@@ -57,8 +59,9 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return res.json();
 }
 
-export async function fetchListings(): Promise<Listing[]> {
-  return api<Listing[]>('/listings?status=active');
+export async function fetchListings(ossProject?: string): Promise<Listing[]> {
+  const q = ossProject ? `&oss_project=${encodeURIComponent(ossProject)}` : '';
+  return api<Listing[]>(`/listings?status=active${q}`);
 }
 
 export async function fetchListing(id: string): Promise<Listing> {
@@ -110,10 +113,85 @@ export function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-export async function serverFetchListings(): Promise<Listing[]> {
+export interface MentorApplication {
+  id: string;
+  user_id: string;
+  status: string;
+  github_data?: {
+    summary?: {
+      login?: string;
+      public_repos?: number;
+      followers?: number;
+      total_prs?: number;
+      recent_repos?: string[];
+    };
+    profile?: { login?: string; html_url?: string; bio?: string };
+    pull_requests?: { total_count?: number; items?: Array<{ title?: string; html_url?: string; state?: string }> };
+  };
+  created_at?: string;
+}
+
+export const PLATFORM_FEE_PERCENT = 10;
+
+export function calculateFees(priceCents: number) {
+  const fee = Math.round(priceCents * PLATFORM_FEE_PERCENT / 100);
+  return { fee, payout: priceCents - fee };
+}
+
+export interface ConnectStatus {
+  connected: boolean;
+  account_id?: string;
+}
+
+export async function fetchConnectStatus(): Promise<ConnectStatus> {
+  return api<ConnectStatus>('/payments/connect/status');
+}
+
+export async function startStripeConnect(returnUrl: string, refreshUrl: string) {
+  return api<{ onboarding_url: string; account_id: string }>('/payments/connect/onboard', {
+    method: 'POST',
+    body: JSON.stringify({ return_url: returnUrl, refresh_url: refreshUrl }),
+  });
+}
+
+export async function fetchLedger(listingId: string) {
+  return api<Array<{
+    id: string;
+    event_type: string;
+    gross_cents: number;
+    platform_fee_cents: number;
+    mentor_payout_cents: number;
+    created_at: string;
+  }>>(`/payments/ledger/${listingId}`);
+}
+
+export async function applyMentor(githubUsername?: string) {
+  return api<MentorApplication>('/mentors/apply', {
+    method: 'POST',
+    body: JSON.stringify({ github_username: githubUsername }),
+  });
+}
+
+export async function fetchMentorApplications(status = 'pending') {
+  return api<MentorApplication[]>(`/mentors/admin/applications?status=${status}`);
+}
+
+export async function reviewMentorApplication(id: string, status: 'approved' | 'rejected') {
+  return api(`/mentors/admin/applications/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function createListing(payload: Omit<Listing, 'id' | 'mentor_id' | 'filled_slots' | 'status'> & { status?: string }) {
+  return api<Listing>('/listings', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function serverFetchListings(ossProject?: string): Promise<Listing[]> {
   try {
     const base = process.env.INTERNAL_API_URL || 'http://gateway:8080/api/v1';
-    const res = await fetch(`${base}/listings?status=active`, { next: { revalidate: 60 } });
+    const q = ossProject ? `&oss_project=${encodeURIComponent(ossProject)}` : '';
+    const res = await fetch(`${base}/listings?status=active${q}`, { next: { revalidate: 60 } });
     if (!res.ok) return [];
     return res.json();
   } catch {

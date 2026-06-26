@@ -21,7 +21,10 @@ run_sql() {
 
 run_sql "$ROOT/migrations/init/001_schemas.sql"
 run_sql "$ROOT/migrations/general/001_init.up.sql"
+run_sql "$ROOT/migrations/general/002_stripe_connect.up.sql"
+run_sql "$ROOT/migrations/general/003_password_salt.up.sql"
 run_sql "$ROOT/migrations/payments/001_init.up.sql"
+run_sql "$ROOT/migrations/payments/002_outbox.up.sql"
 run_sql "$ROOT/migrations/metrics/001_init.up.sql"
 
 echo "Migration step complete."

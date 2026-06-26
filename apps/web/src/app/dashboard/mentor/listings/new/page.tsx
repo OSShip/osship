@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, getStoredUser } from '@/lib/api';
+import { api, createListing, getStoredUser } from '@/lib/api';
 
 export default function NewListingPage() {
   const user = getStoredUser();
@@ -16,7 +16,7 @@ export default function NewListingPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await api('/listings', { method: 'POST', body: JSON.stringify(form) });
+      await createListing(form);
       router.push('/dashboard/mentor');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create listing');

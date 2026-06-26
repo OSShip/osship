@@ -17,18 +17,26 @@ import (
 )
 
 type Listing struct {
-	ID             string    `json:"id"`
-	MentorID       string    `json:"mentor_id"`
-	OSSProjectName string    `json:"oss_project_name"`
-	OSSRepoURL     string    `json:"oss_repo_url"`
-	Description    string    `json:"description"`
-	PriceCents     int       `json:"price_cents"`
-	DurationWeeks  int       `json:"duration_weeks"`
-	TotalSlots     int       `json:"total_slots"`
-	FilledSlots    int       `json:"filled_slots"`
-	Status         string    `json:"status"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID                  string    `json:"id"`
+	MentorID            string    `json:"mentor_id"`
+	MentorDisplayName   string    `json:"mentor_display_name,omitempty"`
+	MentorGithubUsername string   `json:"mentor_github_username,omitempty"`
+	OSSProjectName      string    `json:"oss_project_name"`
+	OSSRepoURL          string    `json:"oss_repo_url"`
+	Description         string    `json:"description"`
+	PriceCents          int       `json:"price_cents"`
+	DurationWeeks       int       `json:"duration_weeks"`
+	TotalSlots          int       `json:"total_slots"`
+	FilledSlots         int       `json:"filled_slots"`
+	Status              string    `json:"status"`
+	CreatedAt           time.Time `json:"created_at"`
 }
+
+const listingSelect = `SELECT l.id, l.mentor_id, COALESCE(u.display_name,''), COALESCE(u.github_username,''),
+	l.oss_project_name, l.oss_repo_url, l.description, l.price_cents, l.duration_weeks,
+	l.total_slots, l.filled_slots, l.status, l.created_at
+	FROM listings l
+	JOIN users u ON u.id = l.mentor_id`
 
 func main() {
 	dbURL := env("DATABASE_URL_GENERAL", "postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general")
@@ -75,9 +83,24 @@ func (s *server) list(w http.ResponseWriter, r *http.Request) {
 	if status == "" {
 		status = "active"
 	}
-	rows, err := s.pool.Query(r.Context(),
-		`SELECT id, mentor_id, oss_project_name, oss_repo_url, description, price_cents, duration_weeks, total_slots, filled_slots, status, created_at
-		 FROM listings WHERE status=$1 ORDER BY created_at DESC`, status)
+	ossProject := r.URL.Query().Get("oss_project")
+
+	var (
+		rows interface {
+			Close()
+			Next() bool
+			Scan(dest ...any) error
+		}
+		err error
+	)
+	if ossProject != "" {
+		rows, err = s.pool.Query(r.Context(),
+			listingSelect+` WHERE l.status=$1 AND l.oss_project_name ILIKE '%' || $2 || '%' ORDER BY l.created_at DESC`,
+			status, ossProject)
+	} else {
+		rows, err = s.pool.Query(r.Context(),
+			listingSelect+` WHERE l.status=$1 ORDER BY l.created_at DESC`, status)
+	}
 	if err != nil {
 		http.Error(w, `{"error":"internal"}`, http.StatusInternalServerError)
 		return
@@ -93,10 +116,10 @@ func (s *server) list(w http.ResponseWriter, r *http.Request) {
 func (s *server) get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var l Listing
-	err := s.pool.QueryRow(r.Context(),
-		`SELECT id, mentor_id, oss_project_name, oss_repo_url, description, price_cents, duration_weeks, total_slots, filled_slots, status, created_at
-		 FROM listings WHERE id=$1`, id).
-		Scan(&l.ID, &l.MentorID, &l.OSSProjectName, &l.OSSRepoURL, &l.Description, &l.PriceCents, &l.DurationWeeks, &l.TotalSlots, &l.FilledSlots, &l.Status, &l.CreatedAt)
+	err := s.pool.QueryRow(r.Context(), listingSelect+` WHERE l.id=$1`, id).
+		Scan(&l.ID, &l.MentorID, &l.MentorDisplayName, &l.MentorGithubUsername,
+			&l.OSSProjectName, &l.OSSRepoURL, &l.Description, &l.PriceCents, &l.DurationWeeks,
+			&l.TotalSlots, &l.FilledSlots, &l.Status, &l.CreatedAt)
 	if err != nil {
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		return
@@ -187,7 +210,9 @@ func scanListings(rows interface {
 	var list []Listing
 	for rows.Next() {
 		var l Listing
-		if err := rows.Scan(&l.ID, &l.MentorID, &l.OSSProjectName, &l.OSSRepoURL, &l.Description, &l.PriceCents, &l.DurationWeeks, &l.TotalSlots, &l.FilledSlots, &l.Status, &l.CreatedAt); err != nil {
+		if err := rows.Scan(&l.ID, &l.MentorID, &l.MentorDisplayName, &l.MentorGithubUsername,
+			&l.OSSProjectName, &l.OSSRepoURL, &l.Description, &l.PriceCents, &l.DurationWeeks,
+			&l.TotalSlots, &l.FilledSlots, &l.Status, &l.CreatedAt); err != nil {
 			continue
 		}
 		list = append(list, l)

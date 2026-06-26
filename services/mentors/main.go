@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -40,7 +39,7 @@ func main() {
 	producer := kafka.NewProducer(brokers, "mentor.events")
 	defer producer.Close()
 
-	s := &server{pool: pool, producer: producer, githubToken: githubToken}
+	s := &server{pool: pool, producer: producer, github: newGitHubClient(githubToken)}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -60,9 +59,9 @@ func main() {
 }
 
 type server struct {
-	pool        *pgxpool.Pool
-	producer    *kafka.Producer
-	githubToken string
+	pool     *pgxpool.Pool
+	producer *kafka.Producer
+	github   *githubClient
 }
 
 func (s *server) apply(w http.ResponseWriter, r *http.Request) {
@@ -84,9 +83,17 @@ func (s *server) apply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	githubData := fetchGitHubProfile(s.githubToken, githubUser)
+	var pendingID string
+	err := s.pool.QueryRow(r.Context(),
+		`SELECT id FROM mentor_applications WHERE user_id=$1 AND status='pending'`, userID).Scan(&pendingID)
+	if err == nil {
+		http.Error(w, `{"error":"application already pending"}`, http.StatusConflict)
+		return
+	}
+
+	githubData := s.github.fetchContributions(githubUser)
 	id := uuid.New().String()
-	_, err := s.pool.Exec(r.Context(),
+	_, err = s.pool.Exec(r.Context(),
 		`INSERT INTO mentor_applications (id, user_id, github_data) VALUES ($1,$2,$3)`,
 		id, userID, githubData)
 	if err != nil {
@@ -157,41 +164,6 @@ func (s *server) reviewApplication(w http.ResponseWriter, r *http.Request) {
 		_ = s.producer.Publish(r.Context(), "mentor.approved", map[string]string{"user_id": userID})
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": req.Status})
-}
-
-func fetchGitHubProfile(token, username string) json.RawMessage {
-	url := "https://api.github.com/users/" + username
-	req, _ := http.NewRequest(http.MethodGet, url, nil)
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return json.RawMessage(`{"error":"fetch failed"}`)
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-
-	reposURL := "https://api.github.com/users/" + username + "/repos?sort=updated&per_page=5"
-	req2, _ := http.NewRequest(http.MethodGet, reposURL, nil)
-	if token != "" {
-		req2.Header.Set("Authorization", "Bearer "+token)
-	}
-	resp2, _ := http.DefaultClient.Do(req2)
-	var repos json.RawMessage = json.RawMessage(`[]`)
-	if resp2 != nil && resp2.StatusCode == http.StatusOK {
-		reposBody, _ := io.ReadAll(resp2.Body)
-		repos = reposBody
-		resp2.Body.Close()
-	}
-
-	result := map[string]json.RawMessage{
-		"profile": body,
-		"repos":   repos,
-	}
-	data, _ := json.Marshal(result)
-	return data
 }
 
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
