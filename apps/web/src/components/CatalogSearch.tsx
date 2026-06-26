@@ -17,12 +17,12 @@ export function CatalogSearch({ initialQuery }: { initialQuery: string }) {
     <form className="catalog-search" onSubmit={handleSubmit}>
       <input
         type="search"
-        placeholder="Filter by OSS project..."
+        placeholder="grep --project ..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         aria-label="Filter listings by OSS project"
       />
-      <button type="submit" className="btn secondary">Search</button>
+      <button type="submit" className="btn secondary">run</button>
     </form>
   );
 }

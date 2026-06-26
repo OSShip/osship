@@ -7,7 +7,7 @@ echo "OSShip Pulling latest changes..."
 git pull origin main 2>/dev/null || true
 
 echo "OSShip Building images..."
-docker compose build
+docker buildx bake
 
 echo "OSShip Running migrations..."
 docker compose up -d postgres redis kafka

@@ -1,0 +1,50 @@
+# Development overrides: expose service ports on the host.
+# Usage: make dev  (or docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d)
+services:
+  auth:
+    ports:
+      - "8081:8081"
+
+  listings:
+    ports:
+      - "8082:8082"
+
+  users:
+    ports:
+      - "8083:8083"
+
+  sessions:
+    ports:
+      - "8084:8084"
+
+  mentors:
+    ports:
+      - "8085:8085"
+
+  notifications:
+    ports:
+      - "8086:8086"
+
+  payments:
+    ports:
+      - "8087:8087"
+
+  metrics:
+    ports:
+      - "8088:8088"
+
+  gateway:
+    ports:
+      - "8080:8080"
+
+  web:
+    ports:
+      - "3000:3000"
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  grafana:
+    ports:
+      - "3030:3000"

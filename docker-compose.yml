@@ -77,8 +77,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL:-http://localhost/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: ${GF_SERVER_SERVE_FROM_SUB_PATH:-false}
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -107,7 +107,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8081/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -129,7 +129,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8083/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8083/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -150,7 +150,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8082/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -172,7 +172,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8085/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8085/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -194,7 +194,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8084/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8084/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -223,7 +223,7 @@ services:
       users:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8087/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8087/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -243,7 +243,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8086/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8086/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -264,7 +264,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8088/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8088/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -301,7 +301,7 @@ services:
       payments:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
