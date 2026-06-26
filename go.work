@@ -1,10 +1,10 @@
 go 1.22
 
 use (
-	./packages/jwtutil
-	./packages/kafka
-	./packages/observability
-	./packages/passhash
+	./utils/jwtutil
+	./utils/kafka
+	./utils/observability
+	./utils/passhash
 	./services/auth
 	./services/gateway
 	./services/listings

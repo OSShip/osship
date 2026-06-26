@@ -203,8 +203,8 @@ services:
 
   payments:
     build:
-      context: .
-      dockerfile: services/payments/Dockerfile
+      context: services/payments
+      dockerfile: Dockerfile
     environment:
       DATABASE_URL_PAYMENTS: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable
@@ -252,8 +252,8 @@ services:
 
   metrics:
     build:
-      context: .
-      dockerfile: services/metrics/Dockerfile
+      context: services/metrics
+      dockerfile: Dockerfile
     environment:
       DATABASE_URL_METRICS: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable
       KAFKA_BROKERS: kafka:9092
@@ -310,7 +310,7 @@ services:
 
   web:
     build:
-      context: apps/web
+      context: ui
       dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_API_URL: /api/v1

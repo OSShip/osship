@@ -11,7 +11,7 @@ fi
 
 echo "==> Seeding demo data for payments flow"
 
-IFS=$'\t' read -r DEMO_SALT DEMO_HASH < <(go run ./packages/passhash/cmd/seedhash/main.go password123)
+IFS=$'\t' read -r DEMO_SALT DEMO_HASH < <(go run ./utils/passhash/cmd/seedhash/main.go password123)
 
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U osship -d osship <<SQL
 SET search_path TO general;

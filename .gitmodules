@@ -1,0 +1,33 @@
+[submodule "ui"]
+	path = ui
+	url = git@github.com:OSShip/ui.git
+[submodule "utils"]
+	path = utils
+	url = git@github.com:OSShip/utils.git
+[submodule "services/auth"]
+	path = services/auth
+	url = git@github.com:OSShip/auth.git
+[submodule "services/gateway"]
+	path = services/gateway
+	url = git@github.com:OSShip/gateway.git
+[submodule "services/listings"]
+	path = services/listings
+	url = git@github.com:OSShip/listings.git
+[submodule "services/mentors"]
+	path = services/mentors
+	url = git@github.com:OSShip/mentors.git
+[submodule "services/notifications"]
+	path = services/notifications
+	url = git@github.com:OSShip/notifications.git
+[submodule "services/payments"]
+	path = services/payments
+	url = git@github.com:OSShip/payments.git
+[submodule "services/sessions"]
+	path = services/sessions
+	url = git@github.com:OSShip/sessions.git
+[submodule "services/users"]
+	path = services/users
+	url = git@github.com:OSShip/users.git
+[submodule "services/metrics"]
+	path = services/metrics
+	url = git@github.com:OSShip/metrics.git

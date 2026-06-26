@@ -1,3 +1,3 @@
-module github.com/osship/osship/tests/integration
+module github.com/OSShip/osship/tests/integration
 
 go 1.22
