@@ -39,6 +39,22 @@ make up
 make seed
 ```
 
+## Observability
+
+| Layer | Tool | Access |
+|-------|------|--------|
+| Metrics | Prometheus + Grafana | http://localhost/grafana/ (admin / admin) |
+| Errors | Sentry | Set `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` in `.env` |
+
+When Sentry DSN vars are empty, all services run normally without reporting.
+
+### Production deploy
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+./scripts/deploy.sh
+```
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
