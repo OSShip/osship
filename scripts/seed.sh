@@ -43,6 +43,17 @@ VALUES (
   'active'
 )
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO mentorship_sessions (id, listing_id, scheduled_at, jitsi_room_name, jitsi_url, status)
+VALUES (
+  '33333333-3333-3333-3333-333333333301',
+  '22222222-2222-2222-2222-222222222201',
+  NOW() + INTERVAL '2 days',
+  'osship-listing-22222222-session-demo',
+  'https://meet.jit.si/osship-listing-22222222-session-demo',
+  'scheduled'
+)
+ON CONFLICT (id) DO NOTHING;
 SQL
 
 echo "Demo accounts (see accounts.txt):"
@@ -50,3 +61,4 @@ echo "  student@osship.local / password123"
 echo "  mentor@osship.local  / password123"
 echo "  admin@osship.local   / password123"
 echo "Listing ID: 22222222-2222-2222-2222-222222222201"
+echo "Session ID: 33333333-3333-3333-3333-333333333301 (scheduled in 2 days)"
