@@ -1,0 +1,39 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: osship-mvp
+    folder: OSShip
+    interval: 1m
+    rules:
+      - uid: service-down
+        title: ServiceDown
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: up == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus target is down"
+      - uid: high-error-rate
+        title: HighErrorRate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+              intervalMs: 1000
+              maxDataPoints: 43200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx error rate above 5%"

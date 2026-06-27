@@ -1,0 +1,17 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(rate(http_requests_total{service=\"sessions\"}[5m]))", "legendFormat": "sessions rps" }],
+      "title": "Sessions Service RPS",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "title": "Sessions",
+  "uid": "osship-sessions",
+  "version": 1
+}
