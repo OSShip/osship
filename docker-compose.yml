@@ -1,3 +1,8 @@
+x-sentry-env: &sentry-env
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
+  SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -103,6 +108,7 @@ services:
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       GITHUB_OAUTH_REDIRECT_URI: ${GITHUB_OAUTH_REDIRECT_URI:-http://localhost/api/v1/auth/oauth/github/callback}
       PORT: "8081"
+      <<: *sentry-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,6 +129,7 @@ services:
       KAFKA_BROKERS: kafka:9092
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       PORT: "8083"
+      <<: *sentry-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -144,6 +151,7 @@ services:
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
       KAFKA_BROKERS: kafka:9092
       PORT: "8082"
+      <<: *sentry-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -166,6 +174,7 @@ services:
       KAFKA_BROKERS: kafka:9092
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       PORT: "8085"
+      <<: *sentry-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -188,6 +197,7 @@ services:
       KAFKA_BROKERS: kafka:9092
       JITSI_BASE_URL: ${JITSI_BASE_URL:-https://meet.jit.si}
       PORT: "8084"
+      <<: *sentry-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -215,6 +225,7 @@ services:
       KAFKA_BROKERS: kafka:9092
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
       PORT: "8087"
+      <<: *sentry-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -239,6 +250,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-noreply@osship.local}
       PORT: "8086"
+      <<: *sentry-env
     depends_on:
       kafka:
         condition: service_healthy
@@ -258,6 +270,7 @@ services:
       DATABASE_URL_METRICS: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable
       KAFKA_BROKERS: kafka:9092
       PORT: "8088"
+      <<: *sentry-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -287,6 +300,7 @@ services:
       PAYMENTS_SERVICE_URL: http://payments:8087
       RATE_LIMIT_AUTH_LOGIN: ${RATE_LIMIT_AUTH_LOGIN:-10}
       RATE_LIMIT_PAYMENTS_CHECKOUT: ${RATE_LIMIT_PAYMENTS_CHECKOUT:-5}
+      <<: *sentry-env
     depends_on:
       redis:
         condition: service_healthy
@@ -315,6 +329,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: /api/v1
       INTERNAL_API_URL: http://gateway:8080/api/v1
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      <<: *sentry-env
     depends_on:
       gateway:
         condition: service_healthy
