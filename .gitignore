@@ -15,3 +15,4 @@ postgres_data/
 prometheus_data/
 grafana_data/
 accounts.txt
+.cursor/
