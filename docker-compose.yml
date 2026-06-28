@@ -63,6 +63,20 @@ services:
     networks:
       - osship-net
 
+  kafka-init:
+    image: apache/kafka:3.8.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./scripts/kafka-init-topics.sh:/kafka-init-topics.sh:ro
+    entrypoint: ["/bin/bash", "/kafka-init-topics.sh"]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    networks:
+      - osship-net
+    restart: "no"
+
   prometheus:
     image: prom/prometheus:v2.54.1
     volumes:
@@ -137,6 +151,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8083/health"]
       interval: 10s
@@ -159,6 +175,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8082/health"]
       interval: 10s
@@ -182,6 +200,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8085/health"]
       interval: 10s
@@ -205,6 +225,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8084/health"]
       interval: 10s
@@ -233,6 +255,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       users:
         condition: service_healthy
     healthcheck:
@@ -256,6 +280,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8086/health"]
       interval: 10s
@@ -278,6 +304,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8088/health"]
       interval: 10s

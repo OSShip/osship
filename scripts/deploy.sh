@@ -17,6 +17,7 @@ done
 echo "==> Starting infrastructure..."
 docker compose up -d postgres redis kafka
 sleep 5
+docker compose run --rm kafka-init
 make migrate
 
 echo "==> Starting application stack..."
