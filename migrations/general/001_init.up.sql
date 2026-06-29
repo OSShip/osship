@@ -35,7 +35,7 @@ CREATE TABLE listings (
     oss_project_name VARCHAR(255) NOT NULL,
     oss_repo_url VARCHAR(512) NOT NULL,
     description TEXT NOT NULL,
-    price_cents INTEGER NOT NULL CHECK (price_cents > 0),
+    price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
     duration_weeks INTEGER NOT NULL CHECK (duration_weeks > 0),
     total_slots INTEGER NOT NULL CHECK (total_slots > 0),
     filled_slots INTEGER NOT NULL DEFAULT 0,

@@ -22,7 +22,7 @@ services:
       - ./migrations/general/001_init.up.sql:/docker-entrypoint-initdb.d/02_general.sql:ro
       - ./migrations/general/002_stripe_connect.up.sql:/docker-entrypoint-initdb.d/02b_stripe.sql:ro
       - ./migrations/general/003_password_salt.up.sql:/docker-entrypoint-initdb.d/02c_password_salt.sql:ro
-      - ./migrations/general/004_sessions_is_active.up.sql:/docker-entrypoint-initdb.d/session_active.sql:ro
+      - ./migrations/general/004_session_is_active.up.sql:/docker-entrypoint-initdb.d/session_active.sql:ro
       - ./migrations/payments/001_init.up.sql:/docker-entrypoint-initdb.d/03_payments.sql:ro
       - ./migrations/payments/002_outbox.up.sql:/docker-entrypoint-initdb.d/03b_outbox.sql:ro
       - ./migrations/metrics/001_init.up.sql:/docker-entrypoint-initdb.d/04_metrics.sql:ro
@@ -406,8 +406,6 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt
-      - ./nginx/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key
     depends_on:
       ui:
         condition: service_started

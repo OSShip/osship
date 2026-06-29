@@ -1,6 +1,9 @@
 # Development overrides: expose service ports on the host and UI hot reload.
 # Usage: make dev  (or docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build)
 services:
+  postgres:
+    ports:
+      - "5432:5432"
   auth:
     ports:
       - "8081:8081"
