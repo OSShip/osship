@@ -22,6 +22,7 @@ services:
       - ./migrations/general/001_init.up.sql:/docker-entrypoint-initdb.d/02_general.sql:ro
       - ./migrations/general/002_stripe_connect.up.sql:/docker-entrypoint-initdb.d/02b_stripe.sql:ro
       - ./migrations/general/003_password_salt.up.sql:/docker-entrypoint-initdb.d/02c_password_salt.sql:ro
+      - ./migrations/general/004_sessions_is_active.up.sql:/docker-entrypoint-initdb.d/session_active.sql:ro
       - ./migrations/payments/001_init.up.sql:/docker-entrypoint-initdb.d/03_payments.sql:ro
       - ./migrations/payments/002_outbox.up.sql:/docker-entrypoint-initdb.d/03b_outbox.sql:ro
       - ./migrations/metrics/001_init.up.sql:/docker-entrypoint-initdb.d/04_metrics.sql:ro
@@ -59,7 +60,11 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 1
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1",
+        ]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -109,7 +114,8 @@ services:
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test:
+        ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -134,7 +140,8 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8081/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8081/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -160,7 +167,8 @@ services:
       kafka-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8083/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8083/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -185,7 +193,8 @@ services:
       kafka-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8082/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8082/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -211,7 +220,8 @@ services:
       kafka-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8085/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8085/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -240,7 +250,8 @@ services:
       kafka-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8084/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8084/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -272,7 +283,8 @@ services:
       users:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8087/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8087/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -296,7 +308,8 @@ services:
       kafka-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8086/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8086/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -320,7 +333,8 @@ services:
       kafka-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8088/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8088/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -359,7 +373,8 @@ services:
       payments:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -369,6 +384,8 @@ services:
   ui:
     build:
       context: ui
+      args:
+        NEXT_PUBLIC_JITSI_APP_ID: ${NEXT_PUBLIC_JITSI_APP_ID}
       dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_API_URL: /api/v1
