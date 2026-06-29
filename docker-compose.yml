@@ -227,6 +227,9 @@ services:
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
       KAFKA_BROKERS: kafka:9092
       JITSI_BASE_URL: ${JITSI_BASE_URL:-https://meet.jit.si}
+      JITSI_APP_ID: ${JITSI_APP_ID}
+      JITSI_API_KEY: ${JITSI_API_KEY}
+      JITSI_PRIVATE_KEY_PATH: ${JITSI_PRIVATE_KEY_PATH}
       PORT: "8084"
       <<: *sentry-env
     depends_on:
@@ -370,7 +373,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: /api/v1
       INTERNAL_API_URL: http://gateway:8080/api/v1
-      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN}
+      NEXT_PUBLIC_JITSI_APP_ID: ${NEXT_PUBLIC_JITSI_APP_ID}
       <<: *sentry-env
     depends_on:
       gateway:
@@ -382,8 +386,11 @@ services:
     image: nginx:1.27-alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt
+      - ./nginx/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key
     depends_on:
       ui:
         condition: service_started
@@ -392,7 +399,7 @@ services:
       grafana:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost"]
       interval: 10s
       timeout: 5s
       retries: 5

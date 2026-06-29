@@ -16,3 +16,6 @@ prometheus_data/
 grafana_data/
 accounts.txt
 .cursor/
+jitsi.pk
+*.key
+*.crt

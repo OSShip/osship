@@ -1,10 +1,6 @@
-go 1.22
+go 1.25.0
 
 use (
-	./utils/jwtutil
-	./utils/kafka
-	./utils/observability
-	./utils/passhash
 	./services/auth
 	./services/gateway
 	./services/listings
@@ -12,4 +8,8 @@ use (
 	./services/notifications
 	./services/sessions
 	./services/users
+	./utils/jwtutil
+	./utils/kafka
+	./utils/observability
+	./utils/passhash
 )
