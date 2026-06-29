@@ -1,5 +1,5 @@
-# Development overrides: expose service ports on the host.
-# Usage: make dev  (or docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d)
+# Development overrides: expose service ports on the host and UI hot reload.
+# Usage: make dev  (or docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build)
 services:
   auth:
     ports:

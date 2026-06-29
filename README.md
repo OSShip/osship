@@ -39,6 +39,21 @@ make up
 make seed
 ```
 
+## API documentation
+
+Swagger UI is served by the gateway (auto-generated with [swaggo/swag](https://github.com/swaggo/swag)):
+
+| URL | Description |
+|-----|-------------|
+| http://localhost/api/docs/ | Swagger UI |
+| http://localhost/api/docs/doc.json | OpenAPI spec (JSON) |
+
+After changing endpoint annotations in `services/gateway/internal/apidoc/`, regenerate:
+
+```bash
+make swagger
+```
+
 ## Observability
 
 | Layer | Tool | Access |

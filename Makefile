@@ -1,4 +1,4 @@
-.PHONY: up down dev dev-down migrate seed build test logs health
+.PHONY: up down recreate dev dev-down dev-recreate migrate seed build test logs health swagger
 
 SERVICES ?=
 COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
@@ -9,11 +9,17 @@ up:
 down:
 	docker compose down
 
+recreate:
+	docker compose up -d --force-recreate $(SERVICES)
+
 dev:
 	$(COMPOSE_DEV) up -d
 
 dev-down:
 	$(COMPOSE_DEV) down
+
+dev-recreate:
+	$(COMPOSE_DEV) up -d --force-recreate --build $(SERVICES)
 
 migrate:
 	./scripts/migrate.sh
@@ -35,3 +41,6 @@ logs:
 
 health:
 	./scripts/health-check.sh
+
+swagger:
+	cd services/gateway && go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g main.go --parseInternal --output docs

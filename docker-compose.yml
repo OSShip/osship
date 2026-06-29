@@ -5,6 +5,10 @@ x-sentry-env: &sentry-env
   SENTRY_LOG_LEVEL: ${SENTRY_LOG_LEVEL:-info}
   RUST_LOG: ${RUST_LOG:-info}
 
+x-log-volume: &log-volume
+  volumes:
+    - ./logs:/logs
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -116,6 +120,7 @@ services:
     build:
       context: .
       dockerfile: services/auth/Dockerfile
+    <<: *log-volume
     environment:
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
       JWT_SECRET: ${JWT_SECRET:-dev-secret}
@@ -140,6 +145,7 @@ services:
     build:
       context: .
       dockerfile: services/users/Dockerfile
+    <<: *log-volume
     environment:
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
       KAFKA_BROKERS: kafka:9092
@@ -165,6 +171,7 @@ services:
     build:
       context: .
       dockerfile: services/listings/Dockerfile
+    <<: *log-volume
     environment:
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
       KAFKA_BROKERS: kafka:9092
@@ -189,6 +196,7 @@ services:
     build:
       context: .
       dockerfile: services/mentors/Dockerfile
+    <<: *log-volume
     environment:
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
       KAFKA_BROKERS: kafka:9092
@@ -214,6 +222,7 @@ services:
     build:
       context: .
       dockerfile: services/sessions/Dockerfile
+    <<: *log-volume
     environment:
       DATABASE_URL_GENERAL: postgres://osship:osship_secret@postgres:5432/osship?sslmode=disable&search_path=general
       KAFKA_BROKERS: kafka:9092
@@ -271,6 +280,7 @@ services:
     build:
       context: .
       dockerfile: services/notifications/Dockerfile
+    <<: *log-volume
     environment:
       KAFKA_BROKERS: kafka:9092
       RESEND_API_KEY: ${RESEND_API_KEY:-}
@@ -318,6 +328,7 @@ services:
     build:
       context: .
       dockerfile: services/gateway/Dockerfile
+    <<: *log-volume
     environment:
       PORT: "8080"
       REDIS_URL: redis://redis:6379
