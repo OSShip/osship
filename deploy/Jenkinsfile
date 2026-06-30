@@ -6,9 +6,14 @@ pipeline {
         JITSI_PK = credentials('jitsi_pk')
     }
 
+    options {
+        skipDefaultCheckout()
+    }
+
     stages {
         stage('Checkout') {
             steps {
+                cleanWs()
                 checkout scm: [
                     $class: 'GitSCM',
                     branches: scm.branches,
