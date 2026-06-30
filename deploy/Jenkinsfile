@@ -58,6 +58,7 @@ pipeline {
             steps {
                 sh '''
                     make migrate
+                    make swagger
                 '''
             }
         }
