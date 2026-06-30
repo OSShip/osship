@@ -19,3 +19,4 @@ accounts.txt
 jitsi.pk
 *.key
 *.crt
+gcp_deploy.sh
