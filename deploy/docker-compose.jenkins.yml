@@ -8,6 +8,9 @@ services:
     ports:
       - "8080:8080"
       - "50000:50000"
+    user: "jenkins:986"
+    group_add:
+      - "986"
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
