@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        REPO_DIR = '/home/ubuntu/osship'
+        ENV_FILE = credentials('env_file')
+        JITSI_PK = credentials('jitsi_pk')
     }
 
     stages {
@@ -24,21 +25,16 @@ pipeline {
 
         stage('Sync to deploy dir') {
             steps {
-                sh '''
-                    mkdir -p $REPO_DIR
-                    rsync -av --delete \
-                        --exclude='.git' \
-                        --exclude='.env' \
-                        --exclude='jitsi.pk' \
-                        $WORKSPACE/ $REPO_DIR/
-                '''
+                sh 'cp $ENV_FILE .env'
+                sh 'cp $JITSI_PK jitsi.pk'
+
+                sh 'ls -la'
             }
         }
 
         stage('Test') {
             steps {
                 sh '''
-                    cd $REPO_DIR
                     make test
                 '''
             }
@@ -47,7 +43,6 @@ pipeline {
         stage('Build') {
             steps {
                 sh '''
-                    cd $REPO_DIR
                     make build
                 '''
             }
@@ -56,7 +51,6 @@ pipeline {
         stage('Migrate') {
             steps {
                 sh '''
-                    cd $REPO_DIR
                     make migrate
                 '''
             }
@@ -65,7 +59,6 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    cd $REPO_DIR
                     make up
                     docker image prune -f
                 '''
@@ -75,7 +68,6 @@ pipeline {
         stage('Health check') {
             steps {
                 sh '''
-                    cd $REPO_DIR
                     sleep 10
                     make health
                 '''
