@@ -47,10 +47,10 @@ pipeline {
             }
         }
 
-        stage('Docker Up') {
+        stage('Docker recreate and up') {
             steps {
                 sh '''
-                    make up
+                    make recreate
                 '''
             }
         }
