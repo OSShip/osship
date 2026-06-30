@@ -32,8 +32,6 @@ seed:
 
 build:
 	docker buildx bake $(SERVICES)
-test:
-	go test ./utils/observability/...
 
 integration:
 	./scripts/integration-test.sh
