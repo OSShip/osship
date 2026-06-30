@@ -34,7 +34,6 @@ build:
 	docker buildx bake $(SERVICES)
 test:
 	go test ./utils/observability/...
-	go test -tags=integration ./tests/integration/...
 
 integration:
 	./scripts/integration-test.sh

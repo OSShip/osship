@@ -1,0 +1,93 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_DIR = '/home/sebastian_galindo143/osship'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm: [
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [[
+                        $class: 'SubmoduleOption',
+                        recursiveSubmodules: true,
+                        parentCredentials: true,
+                        trackingSubmodules: false
+                    ]],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ]
+            }
+        }
+
+        stage('Sync to deploy dir') {
+            steps {
+                sh '''
+                    rsync -av --delete \
+                        --exclude='.git' \
+                        --exclude='.env' \
+                        --exclude='jitsi.pk' \
+                        $WORKSPACE/ $REPO_DIR/
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    cd $REPO_DIR
+                    make test
+                '''
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh '''
+                    cd $REPO_DIR
+                    make build
+                '''
+            }
+        }
+
+        stage('Migrate') {
+            steps {
+                sh '''
+                    cd $REPO_DIR
+                    make migrate
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                    cd $REPO_DIR
+                    make up
+                    docker image prune -f
+                '''
+            }
+        }
+
+        stage('Health check') {
+            steps {
+                sh '''
+                    cd $REPO_DIR
+                    sleep 10
+                    make health
+                '''
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo 'Pipeline failed.'
+        }
+        success {
+            echo 'Deploy success'
+        }
+    }
+}
