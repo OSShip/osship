@@ -42,7 +42,7 @@ pipeline {
         stage('Build') {
             steps {
                 sh '''
-                    make build-no-cache
+                    make build
                 '''
             }
         }
