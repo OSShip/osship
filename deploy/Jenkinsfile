@@ -62,23 +62,6 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                sh '''
-                    make up
-                    docker image prune -f
-                '''
-            }
-        }
-
-        stage('Health check') {
-            steps {
-                sh '''
-                    sleep 10
-                    make health
-                '''
-            }
-        }
     }
 
     post {
