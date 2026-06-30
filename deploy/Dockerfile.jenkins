@@ -1,0 +1,33 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Docker CLI + Compose plugin (para que Jenkins pueda hacer docker-compose build/up)
+RUN apt-get update && \
+    apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+      https://download.docker.com/linux/debian $(lsb_release -cs) stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y \
+        docker-ce-cli \
+        docker-compose-plugin \
+        git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Pre-agrega GitHub a known_hosts (evita el prompt interactivo del primer clone)
+RUN mkdir -p /var/jenkins_home/.ssh && \
+    ssh-keyscan github.com >> /var/jenkins_home/.ssh/known_hosts && \
+    chown -R jenkins:jenkins /var/jenkins_home/.ssh && \
+    chmod 700 /var/jenkins_home/.ssh && \
+    chmod 644 /var/jenkins_home/.ssh/known_hosts
+
+USER jenkins
