@@ -20,6 +20,7 @@ RUN apt-get update && \
     apt-get install -y \
         docker-ce-cli \
         docker-compose-plugin \
+        rsync \
         git && \
     rm -rf /var/lib/apt/lists/*
 
