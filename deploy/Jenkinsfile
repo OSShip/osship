@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REPO_DIR = '/home/sebastian_galindo143/osship'
+        REPO_DIR = '/home/ubuntu/osship'
     }
 
     stages {
@@ -25,6 +25,7 @@ pipeline {
         stage('Sync to deploy dir') {
             steps {
                 sh '''
+                    mkdir -p $REPO_DIR
                     rsync -av --delete \
                         --exclude='.git' \
                         --exclude='.env' \
