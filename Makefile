@@ -33,6 +33,9 @@ seed:
 build:
 	docker buildx bake $(SERVICES)
 
+build-no-cache:
+	docker buildx bake --no-cache
+
 integration:
 	./scripts/integration-test.sh
 
