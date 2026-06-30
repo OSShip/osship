@@ -132,7 +132,6 @@ make logs          # Follow Docker Compose logs
 make recreate      # Recreate running services
 make dev-recreate  # Rebuild and recreate the development stack
 make migrate       # Re-run migrations against the running Postgres container
-make test          # Run Go tests
 make down          # Stop the default stack
 make dev-down      # Stop the development stack
 ```
