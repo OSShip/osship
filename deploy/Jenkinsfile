@@ -32,7 +32,9 @@ pipeline {
             steps {
                 sh 'cp $ENV_FILE .env'
                 sh 'cp $JITSI_PK jitsi.pk'
-                sh 'docker buildx create --use --name osship-buildx --config buildkit.toml'
+                sh 'docker buildx create --name osship-buildx --config buildkit.toml || true'
+                sh 'docker buildx use osship-buildx'
+                sh 'docker buildx inspect --bootstrap'
             }
         }
 
