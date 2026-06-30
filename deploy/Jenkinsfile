@@ -32,7 +32,7 @@ pipeline {
             steps {
                 sh 'cp $ENV_FILE .env'
                 sh 'cp $JITSI_PK jitsi.pk'
-                sh 'docker buildx create --use --config buildkit.toml'
+                sh 'docker buildx create --use --name osship-buildx --config buildkit.toml'
             }
         }
 
@@ -40,6 +40,14 @@ pipeline {
             steps {
                 sh '''
                     make build
+                '''
+            }
+        }
+
+        stage('Docker Up') {
+            steps {
+                sh '''
+                    make up
                 '''
             }
         }
