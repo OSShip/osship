@@ -6,6 +6,9 @@ COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 up:
 	docker compose up -d
 
+jenkins-compose:
+	docker compose -f ./deploy/docker-compose.jenkins.yml up -d --build
+
 down:
 	docker compose down
 
