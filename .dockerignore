@@ -1,0 +1,61 @@
+# Git and IDE
+.git
+.gitmodules
+.github
+.cursor
+.idea
+.vscode
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+*.key
+*.crt
+accounts.txt
+
+# UI (separate docker build context: ui/)
+ui/
+
+# Rust services (separate docker build contexts)
+services/payments/
+services/metrics/
+
+# Node / frontend artifacts
+**/node_modules
+**/.next
+**/dist
+
+# Rust build artifacts
+**/target
+
+# Logs and runtime data
+logs/
+*.log
+tmp/
+postgres_data/
+prometheus_data/
+grafana_data/
+
+# Infra and docs not copied into Go service images
+migrations/
+nginx/
+observability/
+deploy/
+scripts/
+insomnia/
+docker-compose*.yml
+docker-bake.hcl
+buildkit.toml
+Makefile
+README.md
+LICENSE
+gcp_deploy.sh
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Test / coverage output
+coverage/
+**/*.test

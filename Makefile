@@ -13,7 +13,7 @@ down:
 	docker compose down
 
 recreate:
-	docker compose up -d --force-recreate $(SERVICES)
+	docker compose up -d --build --force-recreate $(SERVICES)
 
 dev:
 	$(COMPOSE_DEV) up -d
