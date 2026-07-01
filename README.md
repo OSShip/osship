@@ -2,6 +2,12 @@
 
 **[Live demo → https://osship.app](https://osship.app)**
 
+## Project presentation
+
+Video walkthrough of OSShip — what the platform does, how it works, and how the pieces fit together:
+
+**[Watch on Tella → OSShip presentation](https://www.tella.tv/video/osship-presentation-5klw)**
+
 ## About
 
 OSShip is an open-source mentorship platform that connects students with OSS maintainers through paid, structured mentorship on real projects. Students browse listings, enroll in multi-week slots, join live video sessions, and build verifiable portfolio evidence. Mentors publish listings with their own pricing and schedule; admins review mentor applications and oversee the public payout ledger.
