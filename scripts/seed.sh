@@ -16,7 +16,7 @@ IFS=$'\t' read -r DEMO_SALT DEMO_HASH < <(go run ./utils/passhash/cmd/seedhash/m
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U osship -d osship <<SQL
 SET search_path TO general;
 
--- Demo users (password: password123, per-user random salt + bcrypt)
+-- Demo users (password: password123, per-user random salt + argon2id)
 INSERT INTO users (id, email, password_hash, password_salt, role, github_username, display_name)
 VALUES
   ('11111111-1111-1111-1111-111111111101', 'student@osship.local', '$DEMO_HASH', '$DEMO_SALT', 'student', 'demo-student', 'Demo Student'),

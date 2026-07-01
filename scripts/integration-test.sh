@@ -74,7 +74,7 @@ else
   fail "users patch me via gateway"
 fi
 
-OAUTH_STUB=$(curl -sf "$API/auth/oauth/github") || { fail "github oauth stub"; OAUTH_STUB=""; }
+OAUTH_STUB=$(curl -sf -H "Accept: application/json" "$API/auth/oauth/github") || { fail "github oauth stub"; OAUTH_STUB=""; }
 if echo "$OAUTH_STUB" | grep -q '"stub":true'; then
   pass "github oauth stub"
 else
