@@ -8,6 +8,8 @@ Video walkthrough of OSShip — what the platform does, how it works, and how th
 
 **[Watch on Tella → OSShip presentation](https://www.tella.tv/video/osship-presentation-5klw)**
 
+**[Backup - Video presentation](https://livejaverianaedu-my.sharepoint.com/personal/sfelipe_galindor_javeriana_edu_co/_layouts/15/stream.aspx?id=%2Fpersonal%2Fsfelipe_galindor_javeriana_edu_co%2FDocuments%2FOSShip%20presentation%2Emp4&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&ga=1&referrer=StreamWebApp%2EWeb&referrerScenario=AddressBarCopied%2Eview%2E51b645dc-d51c-4888-81aa-4bec32cd99f4)**
+
 ## About
 
 OSShip is an open-source mentorship platform that connects students with OSS maintainers through paid, structured mentorship on real projects. Students browse listings, enroll in multi-week slots, join live video sessions, and build verifiable portfolio evidence. Mentors publish listings with their own pricing and schedule; admins review mentor applications and oversee the public payout ledger.
